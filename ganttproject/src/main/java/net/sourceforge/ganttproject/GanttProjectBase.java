@@ -71,6 +71,8 @@ import net.sourceforge.ganttproject.storage.SqlProjectDatabaseImpl;
 import net.sourceforge.ganttproject.task.*;
 import net.sourceforge.ganttproject.undo.GPUndoManager;
 import net.sourceforge.ganttproject.undo.UndoManagerImpl;
+import oasis.project.model.OasisProjectData;
+import oasis.project.model.OasisProjectDataOwner;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -94,7 +96,7 @@ import java.util.function.Supplier;
  *
  * @author dbarashev
  */
-abstract class GanttProjectBase implements IGanttProject, UIFacade {
+abstract class GanttProjectBase implements IGanttProject, UIFacade, OasisProjectDataOwner {
   protected final static GanttLanguage language = GanttLanguage.getInstance();
   protected final WeekendCalendarImpl myCalendar = new WeekendCalendarImpl();
   private final ViewManagerImpl myViewManager;
@@ -314,9 +316,14 @@ abstract class GanttProjectBase implements IGanttProject, UIFacade {
   protected GanttProjectImpl getProjectImpl() {
     return myProjectImpl;
   }
+
+  @Override
+  public @NotNull OasisProjectData getOasisProjectData() {
+    return myProjectImpl.getOasisProjectData();
+  }
   @Override
   public void restore(@NotNull Document fromDocument) throws Document.DocumentException, IOException {
-    GanttProjectImplKt.restoreProject(this, fromDocument, myProjectImpl.getListeners());
+    myProjectImpl.getOasisLifecycleBridge().restoreDocument(this, fromDocument, myProjectImpl.getListeners());
   }
 
   @Override

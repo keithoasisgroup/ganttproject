@@ -50,6 +50,9 @@ import net.sourceforge.ganttproject.storage.LazyProjectDatabaseProxy
 import net.sourceforge.ganttproject.storage.ProjectDatabase
 import net.sourceforge.ganttproject.task.*
 import net.sourceforge.ganttproject.task.event.createTaskListenerWithTimerBarrier
+import oasis.project.lifecycle.OasisLifecycleBridge
+import oasis.project.model.OasisProjectData
+import oasis.project.model.OasisProjectDataOwner
 import java.awt.Color
 import java.io.IOException
 import java.net.URL
@@ -64,7 +67,10 @@ open class GanttProjectImpl(
     {error("Not supposed to be called")},
     {error("Not supposed to be called")},
     {error("Not supposed to be called")},
-  )) : IGanttProject {
+  )) : IGanttProject, OasisProjectDataOwner {
+
+  final override val oasisProjectData = OasisProjectData()
+  val oasisLifecycleBridge = OasisLifecycleBridge(oasisProjectData)
 
   val listeners: MutableList<ProjectEventListener> = mutableListOf()
   override val baselines: MutableList<GanttPreviousState> = ArrayList()
@@ -107,7 +113,7 @@ open class GanttProjectImpl(
   }
 
   override fun close() {
-    // TODO Auto-generated method stub
+    oasisLifecycleBridge.projectClosed()
   }
 
   override fun addProjectEventListener(listener: ProjectEventListener) {
@@ -139,6 +145,7 @@ open class GanttProjectImpl(
   }
 
   protected open fun fireProjectClosed() {
+    oasisLifecycleBridge.projectClosed()
     for (modifiedStateChangeListener in listeners) {
       modifiedStateChangeListener.projectClosed()
     }
@@ -154,7 +161,7 @@ open class GanttProjectImpl(
 
   @Throws(Document.DocumentException::class, IOException::class)
   override fun restore(fromDocument: Document) {
-    restoreProject(fromDocument, this.listeners)
+    oasisLifecycleBridge.restoreDocument(this, fromDocument, listeners)
   }
 
   @Throws(IOException::class)
