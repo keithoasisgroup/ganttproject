@@ -25,6 +25,7 @@ import net.sourceforge.ganttproject.gui.UIFacade;
 import net.sourceforge.ganttproject.parser.*;
 import net.sourceforge.ganttproject.task.TaskManager;
 import org.xml.sax.Attributes;
+import oasis.project.persistence.OasisPersistenceBridge;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -44,11 +45,17 @@ public class GanttXMLOpen implements GPParser {
   private PrjInfos myProjectInfo = null;
 
   private UIFacade myUIFacade = null;
+  private OasisPersistenceBridge myOasisPersistence;
 
   public GanttXMLOpen(PrjInfos info, TaskManager taskManager, UIFacade uiFacade) {
     this(taskManager);
     myProjectInfo = info;
     myUIFacade = uiFacade;
+  }
+
+  public GanttXMLOpen(PrjInfos info, TaskManager taskManager, UIFacade uiFacade, OasisPersistenceBridge oasisPersistence) {
+    this(info, taskManager, uiFacade);
+    myOasisPersistence = oasisPersistence;
   }
 
   public GanttXMLOpen(TaskManager taskManager) {
@@ -63,7 +70,11 @@ public class GanttXMLOpen implements GPParser {
 
   public boolean doLoad(InputStream inStream) throws IOException {
     XmlParser parser = new XmlParser(myTagHandlers, myListeners);
-    parser.parse(inStream);
+    if (myOasisPersistence == null) {
+      parser.parse(inStream);
+    } else {
+      myOasisPersistence.load(inStream, parser::parse);
+    }
     return true;
 
   }

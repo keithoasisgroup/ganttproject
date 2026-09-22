@@ -43,10 +43,13 @@ import net.sourceforge.ganttproject.util.ColorConvertion
 import org.slf4j.LoggerFactory
 import org.w3c.util.InvalidDateException
 import java.awt.Color
+import java.io.IOException
 import java.io.UnsupportedEncodingException
 import java.math.BigDecimal
 import java.net.URLDecoder
 import java.util.*
+import oasis.project.persistence.OasisPersistenceBridge
+import oasis.project.persistence.OasisPersistenceException
 
 
 /**
@@ -69,9 +72,26 @@ class XmlProjectImporter(private val ganttProject: GanttProjectImpl = GanttProje
   private val calendar
     get() = ganttProject.activeCalendar
 
-  fun import(xml: ByteArray): IGanttProject = import(xml.toString(Charsets.UTF_8))
+  /** Byte input follows its XML encoding declaration/BOM, with strict decoding. */
+  fun import(xml: ByteArray): IGanttProject {
+    val text = try { XmlInputEncoding.decode(xml) } catch (ex: IOException) {
+      throw OasisPersistenceException(ex.message ?: "Cannot decode native XML", ex)
+    }
+    return import(text)
+  }
 
+  /** String input is already decoded; both parsers receive one canonical UTF-8 representation. */
   fun import(xml: String): IGanttProject {
+    val bytes = try { XmlInputEncoding.canonicalUtf8(xml) } catch (ex: IOException) {
+      throw OasisPersistenceException(ex.message ?: "Invalid Unicode in native XML input", ex)
+    }
+    OasisPersistenceBridge(ganttProject.oasisProjectData, ganttProject.oasisLifecycleBridge).load(bytes.inputStream()) {
+      importNative(it.readAllBytes().decodeToString(throwOnInvalidSequence = true))
+    }
+    return ganttProject
+  }
+
+  private fun importNative(xml: String) {
     xmlProject = parseXmlProject(xml)
 
     ganttProject.projectName = xmlProject.name
@@ -92,7 +112,6 @@ class XmlProjectImporter(private val ganttProject: GanttProjectImpl = GanttProje
     // TODO: table columns
     importCalendar()
 
-    return ganttProject
   }
 
   private fun importCalendar() {

@@ -67,6 +67,25 @@ class OasisProjectDataTest {
   }
 
   @Test
+  fun `reordering equal records replaces the snapshot and index once`() {
+    val second = record.copy(id = ActivityId(UUID.randomUUID()))
+    val data = OasisProjectData(OasisProjectState(listOf(record, second)))
+    val originalIndex = data.activityIdsByTask
+    val reordered = OasisProjectState(listOf(second, record))
+    data.replaceState(reordered)
+    assertSame(reordered, data.state)
+    assertEquals(listOf(second.id, record.id), data.activityIdsByTask.getValue(uid))
+    assertEquals(listOf(record.id, second.id), originalIndex.getValue(uid))
+    assertNotSame(originalIndex, data.activityIdsByTask)
+    assertEquals(1L, data.revision)
+    val reorderedIndex = data.activityIdsByTask
+    data.replaceState(OasisProjectState(listOf(second, record)))
+    assertSame(reordered, data.state)
+    assertSame(reorderedIndex, data.activityIdsByTask)
+    assertEquals(1L, data.revision)
+  }
+
+  @Test
   fun `holders initialized from the same immutable snapshot evolve independently`() {
     val snapshot = OasisProjectState(listOf(record))
     val first = OasisProjectData(snapshot)

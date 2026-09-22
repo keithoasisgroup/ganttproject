@@ -81,7 +81,8 @@ public class BufferProject extends GanttProjectImpl implements ParserFactory {
 
   @Override
   public GPParser newParser() {
-    return new GanttXMLOpen(myProjectInfo, getTaskManager(), myUIfacade);
+    return new GanttXMLOpen(myProjectInfo, getTaskManager(), myUIfacade,
+        new oasis.project.persistence.OasisPersistenceBridge(getOasisProjectData(), getOasisLifecycleBridge()));
   }
 
   @Override

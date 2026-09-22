@@ -83,8 +83,8 @@ class ProjectUIFacadeImpl(
     val saveBarrier = SimpleBarrier<Boolean>()
     isSaving = true
     try {
-      saveBarrier.await {
-        afterSaveProject(project)
+      saveBarrier.await { success ->
+        if (success) afterSaveProject(project)
       }
       ProjectSaveFlow(project = project, onFinish = saveBarrier,
         signin = ::signinDialog,
@@ -435,6 +435,10 @@ class ProjectSaveFlow(
         saveProjectTrySave(project, document)
       }
     } catch (e: PaymentRequiredException) {
+      done(success = false)
+      error(e)
+    } catch (e: Exception) {
+      // This method is also entered from asynchronous retry/sign-in callbacks, outside run()'s catch.
       done(success = false)
       error(e)
     }

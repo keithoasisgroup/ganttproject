@@ -749,7 +749,8 @@ public class GanttProject extends GanttProjectBase implements ResourceView, Gant
     @Override
     public GPParser newParser() {
 
-      return new GanttXMLOpen(prjInfos, getTaskManager(), getUIFacade());
+      return new GanttXMLOpen(prjInfos, getTaskManager(), getUIFacade(),
+          new oasis.project.persistence.OasisPersistenceBridge(getOasisProjectData(), getProjectImpl().getOasisLifecycleBridge()));
 
     }
 

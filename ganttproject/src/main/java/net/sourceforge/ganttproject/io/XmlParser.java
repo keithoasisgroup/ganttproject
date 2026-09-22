@@ -20,7 +20,7 @@ along with GanttProject.  If not, see <http://www.gnu.org/licenses/>.
 package net.sourceforge.ganttproject.io;
 
 import biz.ganttproject.core.io.XmlSerializerKt;
-import com.google.common.base.Charsets;
+import biz.ganttproject.core.io.XmlInputEncoding;
 import net.sourceforge.ganttproject.GPLogger;
 import net.sourceforge.ganttproject.parser.FileFormatException;
 import net.sourceforge.ganttproject.parser.ParsingListener;
@@ -127,7 +127,7 @@ public class XmlParser extends DefaultHandler2 {
       xmlReader.setProperty("http://xml.org/sax/properties/lexical-handler", this);
       saxParser.parse(new ByteArrayInputStream(inputBytes), this);
 
-      var xmlProject = XmlSerializerKt.parseXmlProject(new String(inputBytes, Charsets.UTF_8));
+      var xmlProject = XmlSerializerKt.parseXmlProject(XmlInputEncoding.decode(inputBytes));
       for (var handler : myTagHandlers) {
         handler.process(xmlProject);
       }

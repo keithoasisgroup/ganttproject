@@ -35,6 +35,8 @@ import net.sourceforge.ganttproject.roles.RoleManager;
 import net.sourceforge.ganttproject.roles.RoleSet;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.AttributesImpl;
+import oasis.project.model.OasisProjectDataOwner;
+import oasis.project.persistence.OasisXmlWriter;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.sax.TransformerHandler;
@@ -82,6 +84,9 @@ public class GanttXMLSaver extends SaverBase implements GPSaver {
   @Override
   public void save(OutputStream stream) throws IOException {
     try {
+      var oasisWriter = new OasisXmlWriter();
+      var oasisSnapshot = myProject instanceof OasisProjectDataOwner owner
+          ? oasisWriter.prepare(owner.getOasisProjectData().getState()) : null;
       AttributesImpl attrs = new AttributesImpl();
       StreamResult result = new StreamResult(stream);
       TransformerHandler handler = createHandler(result);
@@ -118,6 +123,9 @@ public class GanttXMLSaver extends SaverBase implements GPSaver {
       saveVacations(handler);
       saveHistory(handler);
       saveRoles(handler);
+      if (oasisSnapshot != null) {
+        oasisWriter.write(oasisSnapshot, handler);
+      }
       endElement("project", handler);
       handler.endDocument();
 

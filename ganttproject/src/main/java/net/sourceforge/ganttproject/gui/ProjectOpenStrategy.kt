@@ -394,7 +394,7 @@ internal class CommandLineProjectOpenStrategy(
         DOCUMENT_LOGGER.debug("<<< openStartupDocument($path) cancelled")
       }
       stateFailed.await { it ->
-        if (it.throwable is Document.DocumentException) {
+        if (it.throwable is Document.DocumentException && !oasis.project.persistence.OasisPersistenceException.causedByOasis(it.throwable)) {
           tryImportDocument(document, it.throwable)
         } else {
           uiFacade.showErrorDialog(it.throwable)

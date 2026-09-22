@@ -14,11 +14,12 @@ import java.io.IOException
 /** Project-scoped lifecycle state, accessed on the project's model thread. */
 class OasisLifecycleBridge(private val data: OasisProjectData) {
   private var internalRestoreDepth = 0
+  val isInternalRestore: Boolean get() = internalRestoreDepth > 0
 
   /**
    * Native Undo/Redo reloads a document by closing the native model first. Its XML
-   * snapshots do not contain Oasis history, so keep that history throughout this
-   * internal restore. Replacement imports also use restoreProject/projectRestoring
+   * snapshots also serve recovery and contain Oasis history. Keep current history
+   * and suppress Oasis hydration throughout internal restore. Replacement imports use restoreProject/projectRestoring
    * but must not enter this scope.
    */
   @Throws(Document.DocumentException::class, IOException::class)

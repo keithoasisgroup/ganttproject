@@ -22,7 +22,8 @@ class OasisProjectData(initialState: OasisProjectState = OasisProjectState()) {
     private set
 
   fun replaceState(newState: OasisProjectState) {
-    if (state == newState) {
+    // Map equality ignores insertion order, which is part of the persisted Activity history.
+    if (state == newState && state.activities.keys.toList() == newState.activities.keys.toList()) {
       return
     }
     val newIndex = index(newState)

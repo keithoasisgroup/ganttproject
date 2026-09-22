@@ -20,6 +20,7 @@ package biz.ganttproject.storage
 
 import biz.ganttproject.FXUtil
 import biz.ganttproject.app.DialogController
+import biz.ganttproject.app.Barrier
 import biz.ganttproject.app.RootLocalizer
 import biz.ganttproject.app.createAlertBody
 import biz.ganttproject.storage.cloud.*
@@ -106,34 +107,23 @@ class StorageDialogBuilder(
     // This will be called when user saves a project.
     myDocumentUpdater = Consumer { document ->
       val killProgress = myDialogUi.toggleProgress(true)
-      documentManager.getProxyDocument(document).also {
-        it.createContents()
-        myProject.document = it
-      }
-
-      try {
-        if (document.isLocal) {
-          document.asLocalDocument()?.create()
-        }
-        projectUi.saveProject(myProject).await { success ->
+      saveAsDocument(myProject, document, documentManager, projectUi::saveProject,
+        onCompletion = { success ->
+          killProgress()
           if (success) {
             document.asOnlineDocument()?.let {
               if (it is GPCloudDocument) {
                 it.onboard(documentManager, webSocket)
               }
             }
+            myDialogUi.close()
           }
+        },
+        onError = { e ->
+          myDialogUi.error("Failed to save the document", e.message ?: "", e)
+          LOG.error("Failed to save document {}", document.uri, exception = e)
         }
-        myDialogUi.toggleProgress(false)
-        myDialogUi.close()
-      } catch (e: Exception) {
-        killProgress()
-        if (e is PaymentRequiredException) {
-          println(e.message)
-        }
-        myDialogUi.error("Failed to save the document", e.message ?: "", e)
-        LOG.error("Failed to save document {}", document.uri, exception = e)
-      }
+      )
     }
   }
 
@@ -308,6 +298,39 @@ interface StorageUi {
 
   // Initializes keyboard focus when the UI pane becomes visible
   fun focus() {}
+}
+
+/** The storage dialog's save attempt, separated from rendering so failure bookkeeping can be tested. */
+internal fun saveAsDocument(
+  project: IGanttProject,
+  destination: Document,
+  documentManager: DocumentManager,
+  save: (IGanttProject) -> Barrier<Boolean>,
+  onCompletion: (Boolean) -> Unit,
+  onError: (Exception) -> Unit
+) {
+  val previousDocument = project.document
+  var candidate: Document? = null
+  var completed = false
+  fun finish(success: Boolean) {
+    if (completed) return
+    completed = true
+    if (!success && project.document === candidate) project.document = previousDocument
+    onCompletion(success)
+  }
+  try {
+    val proxy = documentManager.getProxyDocument(destination)
+    candidate = proxy
+    // Validation/serialization must finish before creating or opening the physical destination.
+    proxy.createContents()
+    if (destination.isLocal) destination.asLocalDocument()?.create()
+    project.document = proxy
+    save(project).await(::finish)
+  } catch (ex: Exception) {
+    if (completed) throw ex
+    finish(false)
+    onError(ex)
+  }
 }
 
 private val LOG = GPLogger.create("FileDialog")
